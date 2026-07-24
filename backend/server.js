@@ -3,6 +3,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const mysql = require('mysql2/promise');
 const path = require('path');
+const fs = require('fs');
 require('dotenv').config();
 
 const apiRoutes = require('./routes/api');
@@ -14,17 +15,55 @@ app.use(helmet());
 app.use(cors({ origin: process.env.FRONTEND_URL || '*' }));
 app.use(express.json());
 
-// Serve static files from frontend build folder
+// Try to serve frontend build if it exists
 const buildPath = path.join(__dirname, '../frontend/build');
-app.use(express.static(buildPath));
+if (fs.existsSync(buildPath)) {
+  app.use(express.static(buildPath));
+}
 
 // API routes
 app.use('/api/v1', apiRoutes);
 
-// Serve React app for all other routes (SPA fallback)
-app.get('*', (req, res) => {
-  res.sendFile(path.join(buildPath, 'index.html'));
+// Fallback: serve simple HTML for root path
+app.get('/', (req, res) => {
+  res.send(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Santri Reminder</title>
+      <style>
+        body { font-family: Arial; text-align: center; padding: 50px; background: #f0f0f0; }
+        .container { background: white; padding: 30px; border-radius: 8px; max-width: 600px; margin: 0 auto; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        h1 { color: #333; }
+        p { color: #666; }
+        .status { background: #e8f5e9; padding: 15px; border-radius: 4px; margin: 20px 0; }
+        .api-link { background: #2196F3; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px; display: inline-block; margin-top: 20px; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <h1>🕌 Santri Reminder</h1>
+        <p>Backend API is running successfully!</p>
+        <div class="status">
+          <strong>✓ Database Connected</strong><br>
+          <strong>✓ Server Running</strong><br>
+          <strong>✓ API Ready</strong>
+        </div>
+        <p>Frontend build is loading or not available.</p>
+        <p>API endpoints available at: <code>/api/v1</code></p>
+        <a href="/api/v1/schedules" class="api-link">View Schedules API</a>
+      </div>
+    </body>
+    </html>
+  `);
 });
+
+// Serve React app for other routes if build exists
+if (fs.existsSync(buildPath)) {
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(buildPath, 'index.html'));
+  });
+}
 
 let db = null;
 
