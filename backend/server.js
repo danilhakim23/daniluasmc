@@ -9,34 +9,23 @@ const apiRoutes = require('./routes/api');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-console.log('[START] Initializing server...');
-console.log('[CONFIG] PORT:', PORT);
-console.log('[CONFIG] DB_HOST:', process.env.DB_HOST);
-console.log('[CONFIG] DB_NAME:', process.env.DB_NAME);
-
 app.use(helmet());
-app.use(cors({ origin: '*' }));
+app.use(cors());
 app.use(express.json());
 
-// API routes first
-app.use('/api/v1', apiRoutes);
-
-// Simple root response
+// Health check endpoint
 app.get('/', (req, res) => {
-  res.json({
-    status: 'ok',
-    message: 'Santri Reminder Backend API',
-    dbConnected: !!app.locals.db,
-    timestamp: new Date().toISOString()
-  });
+  res.json({ status: 'ok', message: 'Backend running' });
 });
 
-// Database connection in background (non-blocking)
+// API routes
+app.use('/api/v1', apiRoutes);
+
+// Connect to database
 let db = null;
 
-async function connectDb() {
+async function initDb() {
   try {
-    console.log('[DB] Connecting...');
     db = await mysql.createConnection({
       host: process.env.DB_HOST,
       port: Number(process.env.DB_PORT) || 3306,
@@ -46,16 +35,14 @@ async function connectDb() {
       multipleStatements: true
     });
     
-    console.log('[DB] Connected!');
-    
     // Create tables
     await db.query(`
       CREATE TABLE IF NOT EXISTS schedules (
         id INT AUTO_INCREMENT PRIMARY KEY,
-        title VARCHAR(100) NOT NULL,
-        type VARCHAR(50) NOT NULL,
-        time VARCHAR(20) NOT NULL,
-        day VARCHAR(20) NOT NULL,
+        title VARCHAR(100),
+        type VARCHAR(50),
+        time VARCHAR(20),
+        day VARCHAR(20),
         status VARCHAR(20) DEFAULT 'active',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
@@ -64,8 +51,8 @@ async function connectDb() {
     await db.query(`
       CREATE TABLE IF NOT EXISTS quotes (
         id INT AUTO_INCREMENT PRIMARY KEY,
-        text TEXT NOT NULL,
-        author VARCHAR(100) NOT NULL,
+        text TEXT,
+        author VARCHAR(100),
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
@@ -73,8 +60,8 @@ async function connectDb() {
     await db.query(`
       CREATE TABLE IF NOT EXISTS announcements (
         id INT AUTO_INCREMENT PRIMARY KEY,
-        title VARCHAR(100) NOT NULL,
-        content TEXT NOT NULL,
+        title VARCHAR(100),
+        content TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
@@ -82,34 +69,29 @@ async function connectDb() {
     await db.query(`
       CREATE TABLE IF NOT EXISTS hadiths (
         id INT AUTO_INCREMENT PRIMARY KEY,
-        source VARCHAR(100) NOT NULL,
-        text TEXT NOT NULL,
+        source VARCHAR(100),
+        text TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
 
-    console.log('[DB] Tables created');
-
-    // Insert sample data
     await db.query(`
       INSERT IGNORE INTO schedules (title, type, time, day, status) 
       VALUES ('Subuh Berjamaah', 'ibadah', '04:30', 'Senin', 'active')
     `);
 
     app.locals.db = db;
-    console.log('[DB] Ready');
+    console.log('Database connected');
   } catch (err) {
-    console.error('[DB] Error:', err.message);
+    console.error('Database error:', err.message);
   }
 }
 
-// Start server immediately
+// Start server
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`[SERVER] Running on port ${PORT}`);
-  console.log(`[SERVER] Visit http://localhost:${PORT}`);
-  
-  // Connect to DB in background
-  connectDb();
+  console.log(`Server running on port ${PORT}`);
+  initDb();
 });
+
 
 
