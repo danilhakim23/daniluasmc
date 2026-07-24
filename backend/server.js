@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const mysql = require('mysql2/promise');
+const path = require('path');
 require('dotenv').config();
 
 const apiRoutes = require('./routes/api');
@@ -12,7 +13,18 @@ const PORT = process.env.PORT || 5000;
 app.use(helmet());
 app.use(cors({ origin: process.env.FRONTEND_URL || '*' }));
 app.use(express.json());
+
+// Serve static files from frontend build folder
+const buildPath = path.join(__dirname, '../frontend/build');
+app.use(express.static(buildPath));
+
+// API routes
 app.use('/api/v1', apiRoutes);
+
+// Serve React app for all other routes (SPA fallback)
+app.get('*', (req, res) => {
+  res.sendFile(path.join(buildPath, 'index.html'));
+});
 
 let db = null;
 
