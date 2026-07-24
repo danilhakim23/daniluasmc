@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin Panel Santri Reminder NJ</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="container">
+      <div class="hero">
+        <h1>Admin Web Panel - Santri Reminder NJ</h1>
+        <p>Panel resmi pengurus pondok untuk mengelola jadwal, pengumuman, quote islami, dan hadis.</p>
+      </div>
+
+      <div class="grid">
+        <div class="stat">
+          <h3>Santri Aktif</h3>
+          <h2>128</h2>
+          <p class="small">Data terupdate</p>
+        </div>
+        <div class="stat">
+          <h3>Kedisiplinan Harian</h3>
+          <h2>92%</h2>
+          <p class="small">Tingkat kepatuhan kegiatan</p>
+        </div>
+        <div class="stat">
+          <h3>Tingkat Penyelesaian</h3>
+          <h2>87%</h2>
+          <p class="small">Target tugas dan jadwal</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Form Tambah Jadwal</h2>
+        <input placeholder="Judul jadwal" />
+        <select>
+          <option>Ibadah</option>
+          <option>Kuliah</option>
+          <option>Pondok</option>
+        </select>
+        <input placeholder="Jam (contoh 04:30)" />
+        <input placeholder="Hari (contoh Senin)" />
+        <button>Simpan Jadwal</button>
+      </div>
+
+      <div class="card">
+        <h2>Pengumuman Pondok</h2>
+        <input placeholder="Judul pengumuman" />
+        <textarea placeholder="Isi pengumuman"></textarea>
+        <button>Publikasikan</button>
+      </div>
+
+      <div class="card">
+        <h2>Quote Islami</h2>
+        <textarea placeholder="Teks quote"></textarea>
+        <input placeholder="Penulis / sumber" />
+        <button>Simpan Quote</button>
+      </div>
+
+      <div class="card">
+        <h2>Akun Admin</h2>
+        <input placeholder="Nama akun" />
+        <input type="email" placeholder="Email akun" />
+        <input type="password" placeholder="Password akun" />
+        <select>
+          <option>Admin Utama</option>
+          <option>Pengurus Pondok</option>
+          <option>Operator</option>
+        </select>
+        <button>Simpan Akun</button>
+      </div>
+
+      <div class="card">
+        <h2>Riwayat Aktivitas</h2>
+        <ul>
+          <li>Jadwal Subuh berhasil diperbarui</li>
+          <li>Pengumuman sholat berjamaah dipublikasikan</li>
+          <li>Quote islami terbaru disimpan</li>
+        </ul>
+      </div>
+    </div>
+  </body>
+</html>

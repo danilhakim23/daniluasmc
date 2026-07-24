@@ -1,0 +1,114 @@
+import 'dart:convert';
+
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+
+import 'config.dart';
+
+void main() {
+  runApp(const SantriApp());
+}
+
+class SantriApp extends StatelessWidget {
+  const SantriApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Santri Reminder',
+      theme: ThemeData(colorScheme: ColorScheme.fromSeed(seedColor: Colors.green)),
+      home: const HomePage(),
+    );
+  }
+}
+
+class HomePage extends StatefulWidget {
+  const HomePage({super.key});
+
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  bool isLoading = true;
+  String message = 'Memuat data...';
+  List<dynamic> schedules = [];
+
+  @override
+  void initState() {
+    super.initState();
+    fetchSchedules();
+  }
+
+  Future<void> fetchSchedules() async {
+    setState(() {
+      isLoading = true;
+      message = 'Memuat data...';
+    });
+
+    try {
+      final response = await http.get(Uri.parse('${AppConfig.apiBaseUrl}/schedules'));
+      if (response.statusCode == 200) {
+        setState(() {
+          schedules = jsonDecode(response.body) as List<dynamic>;
+          message = 'Data jadwal berhasil dimuat';
+          isLoading = false;
+        });
+      } else {
+        setState(() {
+          message = 'Gagal mengambil data: ${response.statusCode}';
+          isLoading = false;
+        });
+      }
+    } catch (error) {
+      setState(() {
+        message = 'Tidak bisa terhubung ke API: $error';
+        isLoading = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Santri Reminder'),
+        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(message, style: const TextStyle(fontSize: 15)),
+            const SizedBox(height: 12),
+            ElevatedButton.icon(
+              onPressed: fetchSchedules,
+              icon: const Icon(Icons.refresh),
+              label: const Text('Refresh data'),
+            ),
+            const SizedBox(height: 16),
+            Expanded(
+              child: isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : schedules.isEmpty
+                      ? const Center(child: Text('Belum ada jadwal'))
+                      : ListView.builder(
+                          itemCount: schedules.length,
+                          itemBuilder: (context, index) {
+                            final item = schedules[index] as Map<String, dynamic>;
+                            return Card(
+                              child: ListTile(
+                                title: Text(item['title'] ?? 'Tanpa judul'),
+                                subtitle: Text('${item['day'] ?? '-'} • ${item['time'] ?? '-'} • ${item['type'] ?? '-'}'),
+                              ),
+                            );
+                          },
+                        ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

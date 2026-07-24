@@ -1,0 +1,28 @@
+Judul: Admin Web Panel Santri Reminder NJ
+
+Deskripsi:
+Sistem ini merupakan panel admin website untuk mengelola aplikasi Android Santri Reminder NJ. Admin dapat mengelola jadwal kegiatan pondok, pengumuman, quote islami, dan data hadis. Sistem ini menggunakan React.js + Tailwind CSS untuk frontend dan Express.js untuk backend REST API.
+
+Fitur utama:
+1. Dashboard statistik santri aktif dan kedisiplinan harian
+2. Manajemen jadwal kegiatan (CRUD)
+3. Pengumuman pondok
+4. Quote islami
+5. Database hadis
+6. Endpoint API untuk sinkronisasi data ke aplikasi Android
+
+Endpoint utama:
+- GET /api/v1/schedules
+- POST /api/v1/schedules
+- DELETE /api/v1/schedules/:id
+- GET /api/v1/quotes
+- POST /api/v1/quotes
+- GET /api/v1/statistics
+
+Cara deployment:
+- Frontend: deploy ke Vercel atau Netlify
+- Backend: deploy ke Render/Railway/Cyclic
+- Database: gunakan PostgreSQL di Neon/Supabase
+
+Kesimpulan:
+Sistem ini membantu pengurus pondok dalam mengelola informasi secara digital dan terintegrasi dengan aplikasi mobile santri.
