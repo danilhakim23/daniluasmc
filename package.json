@@ -1,23 +1,13 @@
 {
   "name": "santri-reminder-app",
   "version": "1.0.0",
-  "description": "Santri Reminder App - Backend and Frontend",
+  "description": "Santri Reminder App - Backend",
   "main": "backend/server.js",
   "scripts": {
-    "install-frontend": "cd frontend && npm install",
-    "build-frontend": "cd frontend && npm run build",
-    "build": "npm run install-frontend && npm run build-frontend",
-    "start": "npm run build && node backend/server.js",
-    "dev": "node backend/server.js"
-  },
-  "dependencies": {
-    "express": "^4.18.2",
-    "cors": "^2.8.5",
-    "helmet": "^7.0.0",
-    "mysql2": "^3.6.0",
-    "dotenv": "^16.3.1"
+    "start": "node backend/server.js"
   },
   "engines": {
     "node": "18.x"
   }
 }
+
