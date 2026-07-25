@@ -3,6 +3,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const mysql = require('mysql2/promise');
 const path = require('path');
+const fs = require('fs');
 require('dotenv').config();
 
 const apiRoutes = require('./routes/api');
@@ -18,7 +19,13 @@ app.use(helmet());
 app.use(cors());
 app.use(express.json());
 
-app.use(express.static(path.join(__dirname, '../frontend/build')));
+const buildPath = path.join(__dirname, '../frontend/build');
+const hasFrontend = fs.existsSync(buildPath);
+if (hasFrontend) {
+  app.use(express.static(buildPath));
+} else {
+  console.log('Frontend build not found — serving API only');
+}
 
 app.get('/', (req, res) => {
   res.json({ status: 'ok', message: 'Backend running' });
@@ -27,8 +34,8 @@ app.get('/', (req, res) => {
 app.use('/api/v1', apiRoutes);
 
 app.get('*', (req, res) => {
-  if (!req.path.startsWith('/api/')) {
-    res.sendFile(path.join(__dirname, '../frontend/build', 'index.html'));
+  if (!req.path.startsWith('/api/') && hasFrontend) {
+    res.sendFile(path.join(buildPath, 'index.html'));
   }
 });
 
