@@ -2,9 +2,14 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const mysql = require('mysql2/promise');
+const path = require('path');
 require('dotenv').config();
 
 const apiRoutes = require('./routes/api');
+
+process.on('unhandledRejection', (err) => {
+  console.error('Unhandled Rejection:', err.message);
+});
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -13,15 +18,20 @@ app.use(helmet());
 app.use(cors());
 app.use(express.json());
 
-// Health check endpoint
+app.use(express.static(path.join(__dirname, '../frontend/build')));
+
 app.get('/', (req, res) => {
   res.json({ status: 'ok', message: 'Backend running' });
 });
 
-// API routes
 app.use('/api/v1', apiRoutes);
 
-// Connect to database
+app.get('*', (req, res) => {
+  if (!req.path.startsWith('/api/')) {
+    res.sendFile(path.join(__dirname, '../frontend/build', 'index.html'));
+  }
+});
+
 let db = null;
 
 function parseDatabaseUrl(url) {
@@ -62,78 +72,87 @@ function getDatabaseConfig() {
   return config;
 }
 
-async function initDb() {
-  try {
-    const dbConfig = getDatabaseConfig();
+async function initDb(retries = 5, delay = 3000) {
+  for (let i = 0; i < retries; i++) {
+    try {
+      const dbConfig = getDatabaseConfig();
 
-    if (!dbConfig.host || !dbConfig.user || !dbConfig.password || !dbConfig.database) {
-      throw new Error(
-        `Missing database configuration. Set DB_HOST/DB_USER/DB_PASSWORD/DB_NAME or MYSQL_HOST/MYSQL_USER/MYSQL_PASSWORD/MYSQL_DATABASE, or provide DATABASE_URL.`
-      );
+      if (!dbConfig.host || !dbConfig.user || !dbConfig.password || !dbConfig.database) {
+        throw new Error(
+          `Missing database configuration. Set DB_HOST/DB_USER/DB_PASSWORD/DB_NAME or MYSQL_HOST/MYSQL_USER/MYSQL_PASSWORD/MYSQL_DATABASE, or provide DATABASE_URL.`
+        );
+      }
+
+      const pool = mysql.createPool({
+        ...dbConfig,
+        multipleStatements: true,
+        waitForConnections: true,
+        connectionLimit: 10,
+        queueLimit: 0
+      });
+
+      const conn = await pool.getConnection();
+      await conn.ping();
+      conn.release();
+
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS schedules (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          title VARCHAR(100),
+          type VARCHAR(50),
+          time VARCHAR(20),
+          day VARCHAR(20),
+          status VARCHAR(20) DEFAULT 'active',
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS quotes (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          text TEXT,
+          author VARCHAR(100),
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS announcements (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          title VARCHAR(100),
+          content TEXT,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS hadiths (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          source VARCHAR(100),
+          text TEXT,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+      `);
+
+      await pool.query(`
+        INSERT IGNORE INTO schedules (title, type, time, day, status) 
+        VALUES ('Subuh Berjamaah', 'ibadah', '04:30', 'Senin', 'active')
+      `);
+
+      app.locals.db = pool;
+      console.log('Database connected');
+      return;
+    } catch (err) {
+      console.error(`Database connection attempt ${i + 1}/${retries} failed:`, err.message);
+      if (i < retries - 1) {
+        await new Promise(r => setTimeout(r, delay));
+      }
     }
-
-    db = await mysql.createConnection({
-      ...dbConfig,
-      multipleStatements: true
-    });
-    
-    // Create tables
-    await db.query(`
-      CREATE TABLE IF NOT EXISTS schedules (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        title VARCHAR(100),
-        type VARCHAR(50),
-        time VARCHAR(20),
-        day VARCHAR(20),
-        status VARCHAR(20) DEFAULT 'active',
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
-
-    await db.query(`
-      CREATE TABLE IF NOT EXISTS quotes (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        text TEXT,
-        author VARCHAR(100),
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
-
-    await db.query(`
-      CREATE TABLE IF NOT EXISTS announcements (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        title VARCHAR(100),
-        content TEXT,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
-
-    await db.query(`
-      CREATE TABLE IF NOT EXISTS hadiths (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        source VARCHAR(100),
-        text TEXT,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
-
-    await db.query(`
-      INSERT IGNORE INTO schedules (title, type, time, day, status) 
-      VALUES ('Subuh Berjamaah', 'ibadah', '04:30', 'Senin', 'active')
-    `);
-
-    app.locals.db = db;
-    console.log('Database connected');
-  } catch (err) {
-    console.error('Database error:', err.message);
   }
+  console.error('All database connection attempts failed — server running without DB');
 }
 
-// Start server
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on port ${PORT}`);
   initDb();
 });
-
-
-
