@@ -7,11 +7,12 @@
 4. Set environment variables:
    - PORT=5000
    - FRONTEND_URL=https://your-frontend-url.vercel.app
-   - DB_HOST=your-railway-mysql-host
-   - DB_PORT=3306
-   - DB_USER=your-railway-mysql-user
-   - DB_PASSWORD=your-railway-mysql-password
-   - DB_NAME=your-railway-mysql-database
+   - MYSQL_HOST=your-railway-mysql-host
+   - MYSQL_PORT=3306
+   - MYSQL_USER=your-railway-mysql-user
+   - MYSQL_PASSWORD=your-railway-mysql-password
+   - MYSQL_DATABASE=your-railway-mysql-database
+   - Or use DATABASE_URL / MYSQL_URL if Railway provides a connection string
 
 ## 2. Database MySQL di Railway
 1. Tambahkan plugin MySQL pada project Railway.

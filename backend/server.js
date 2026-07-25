@@ -24,14 +24,56 @@ app.use('/api/v1', apiRoutes);
 // Connect to database
 let db = null;
 
+function parseDatabaseUrl(url) {
+  try {
+    const dbUrl = new URL(url);
+    return {
+      host: dbUrl.hostname,
+      port: Number(dbUrl.port) || 3306,
+      user: dbUrl.username,
+      password: dbUrl.password,
+      database: dbUrl.pathname?.slice(1)
+    };
+  } catch (err) {
+    console.error('Invalid DATABASE_URL:', err.message);
+    return {};
+  }
+}
+
+function getDatabaseConfig() {
+  const config = {
+    host: process.env.DB_HOST || process.env.MYSQL_HOST,
+    port: Number(process.env.DB_PORT || process.env.MYSQL_PORT) || 3306,
+    user: process.env.DB_USER || process.env.MYSQL_USER,
+    password: process.env.DB_PASSWORD || process.env.MYSQL_PASSWORD,
+    database: process.env.DB_NAME || process.env.MYSQL_DATABASE
+  };
+
+  const url = process.env.DATABASE_URL || process.env.MYSQL_URL || process.env.RAILWAY_DATABASE_URL;
+  if ((!config.host || !config.user || !config.password || !config.database) && url) {
+    const parsed = parseDatabaseUrl(url);
+    config.host = config.host || parsed.host;
+    config.port = config.port || parsed.port;
+    config.user = config.user || parsed.user;
+    config.password = config.password || parsed.password;
+    config.database = config.database || parsed.database;
+  }
+
+  return config;
+}
+
 async function initDb() {
   try {
+    const dbConfig = getDatabaseConfig();
+
+    if (!dbConfig.host || !dbConfig.user || !dbConfig.password || !dbConfig.database) {
+      throw new Error(
+        `Missing database configuration. Set DB_HOST/DB_USER/DB_PASSWORD/DB_NAME or MYSQL_HOST/MYSQL_USER/MYSQL_PASSWORD/MYSQL_DATABASE, or provide DATABASE_URL.`
+      );
+    }
+
     db = await mysql.createConnection({
-      host: process.env.DB_HOST,
-      port: Number(process.env.DB_PORT) || 3306,
-      user: process.env.DB_USER,
-      password: process.env.DB_PASSWORD,
-      database: process.env.DB_NAME,
+      ...dbConfig,
       multipleStatements: true
     });
     
