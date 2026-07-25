@@ -1,16 +1,48 @@
-const express = require('express');
-const cors = require('cors');
-const helmet = require('helmet');
-const mysql = require('mysql2/promise');
-const path = require('path');
-const fs = require('fs');
-require('dotenv').config();
-
-const apiRoutes = require('./routes/api');
+process.on('uncaughtException', (err) => {
+  console.error('UNCAUGHT EXCEPTION:', err.stack || err.message || err);
+  process.exit(1);
+});
 
 process.on('unhandledRejection', (err) => {
-  console.error('Unhandled Rejection:', err.message);
+  console.error('UNHANDLED REJECTION:', err?.stack || err?.message || err);
 });
+
+console.log('=== Santri Reminder NJ Backend ===');
+console.log('Node version:', process.version);
+console.log('Working directory:', process.cwd());
+console.log('Script directory:', __dirname);
+
+let express, cors, helmet, mysql, path, fs;
+
+try {
+  express = require('express');
+  cors = require('cors');
+  helmet = require('helmet');
+  mysql = require('mysql2/promise');
+  path = require('path');
+  fs = require('fs');
+  console.log('All modules loaded successfully');
+} catch (err) {
+  console.error('FATAL: Failed to load module:', err.message);
+  console.error('Stack:', err.stack);
+  process.exit(1);
+}
+
+try {
+  require('dotenv').config();
+} catch (err) {
+  console.log('dotenv not available or no .env file, using environment variables');
+}
+
+let apiRoutes;
+try {
+  apiRoutes = require('./routes/api');
+  console.log('API routes loaded');
+} catch (err) {
+  console.error('FATAL: Failed to load API routes:', err.message);
+  console.error('Stack:', err.stack);
+  process.exit(1);
+}
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -20,15 +52,22 @@ app.use(cors());
 app.use(express.json());
 
 const buildPath = path.join(__dirname, '../frontend/build');
-const hasFrontend = fs.existsSync(buildPath);
+let hasFrontend = false;
+try {
+  hasFrontend = fs.existsSync(buildPath);
+} catch (err) {
+  console.log('Could not check for frontend build:', err.message);
+}
+
 if (hasFrontend) {
   app.use(express.static(buildPath));
+  console.log('Serving frontend from:', buildPath);
 } else {
   console.log('Frontend build not found — serving API only');
 }
 
 app.get('/', (req, res) => {
-  res.json({ status: 'ok', message: 'Backend running' });
+  res.json({ status: 'ok', message: 'Backend running', timestamp: new Date().toISOString() });
 });
 
 app.use('/api/v1', apiRoutes);
@@ -36,10 +75,10 @@ app.use('/api/v1', apiRoutes);
 app.get('*', (req, res) => {
   if (!req.path.startsWith('/api/') && hasFrontend) {
     res.sendFile(path.join(buildPath, 'index.html'));
+  } else if (!req.path.startsWith('/api/')) {
+    res.status(404).json({ error: 'Not found' });
   }
 });
-
-let db = null;
 
 function parseDatabaseUrl(url) {
   try {
@@ -86,9 +125,11 @@ async function initDb(retries = 5, delay = 3000) {
 
       if (!dbConfig.host || !dbConfig.user || !dbConfig.password || !dbConfig.database) {
         throw new Error(
-          `Missing database configuration. Set DB_HOST/DB_USER/DB_PASSWORD/DB_NAME or MYSQL_HOST/MYSQL_USER/MYSQL_PASSWORD/MYSQL_DATABASE, or provide DATABASE_URL.`
+          'Missing database configuration. Set DATABASE_URL or individual DB_HOST/DB_USER/DB_PASSWORD/DB_NAME vars.'
         );
       }
+
+      console.log(`Database connection attempt ${i + 1}/${retries}... host=${dbConfig.host} db=${dbConfig.database}`);
 
       const pool = mysql.createPool({
         ...dbConfig,
@@ -147,7 +188,7 @@ async function initDb(retries = 5, delay = 3000) {
       `);
 
       app.locals.db = pool;
-      console.log('Database connected');
+      console.log('Database connected and tables initialized');
       return;
     } catch (err) {
       console.error(`Database connection attempt ${i + 1}/${retries} failed:`, err.message);
@@ -159,13 +200,18 @@ async function initDb(retries = 5, delay = 3000) {
   console.error('All database connection attempts failed — server running without DB');
 }
 
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Server running on port ${PORT}`);
+const server = app.listen(PORT, '0.0.0.0', () => {
+  console.log('Server running on port ' + PORT);
   console.log('DB env check:', {
     host: process.env.DB_HOST || process.env.MYSQL_HOST || process.env.MYSQLHOST || 'NOT SET',
     user: process.env.DB_USER || process.env.MYSQL_USER || process.env.MYSQLUSER || 'NOT SET',
     database: process.env.DB_NAME || process.env.MYSQL_DATABASE || process.env.MYSQLDATABASE || 'NOT SET',
-    hasUrl: !!(process.env.DATABASE_URL || process.env.MYSQL_URL)
+    hasDatabaseUrl: !!(process.env.DATABASE_URL || process.env.MYSQL_URL)
   });
   initDb();
+});
+
+server.on('error', (err) => {
+  console.error('Server error:', err.message);
+  process.exit(1);
 });
