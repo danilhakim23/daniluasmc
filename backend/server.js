@@ -131,8 +131,13 @@ async function initDb(retries = 5, delay = 3000) {
 
       console.log(`Database connection attempt ${i + 1}/${retries}... host=${dbConfig.host} db=${dbConfig.database}`);
 
+      const ssl = dbConfig.host !== 'localhost' && dbConfig.host !== '127.0.0.1'
+        ? { rejectUnauthorized: false }
+        : undefined;
+
       const pool = mysql.createPool({
         ...dbConfig,
+        ssl,
         multipleStatements: true,
         waitForConnections: true,
         connectionLimit: 10,
