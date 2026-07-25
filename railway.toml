@@ -1,5 +1,5 @@
 [build]
-command = "cd frontend && npm install && NODE_OPTIONS=--openssl-legacy-provider npm run build && cd .. && npm install"
+command = "npm install && cd frontend && npm install && NODE_OPTIONS=--openssl-legacy-provider npm run build"
 
 [deploy]
 startCommand = "npm start"

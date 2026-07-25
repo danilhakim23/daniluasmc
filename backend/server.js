@@ -59,11 +59,11 @@ function parseDatabaseUrl(url) {
 
 function getDatabaseConfig() {
   const config = {
-    host: process.env.DB_HOST || process.env.MYSQL_HOST,
-    port: Number(process.env.DB_PORT || process.env.MYSQL_PORT) || 3306,
-    user: process.env.DB_USER || process.env.MYSQL_USER,
-    password: process.env.DB_PASSWORD || process.env.MYSQL_PASSWORD,
-    database: process.env.DB_NAME || process.env.MYSQL_DATABASE
+    host: process.env.DB_HOST || process.env.MYSQL_HOST || process.env.MYSQLHOST,
+    port: Number(process.env.DB_PORT || process.env.MYSQL_PORT || process.env.MYSQLPORT) || 3306,
+    user: process.env.DB_USER || process.env.MYSQL_USER || process.env.MYSQLUSER,
+    password: process.env.DB_PASSWORD || process.env.MYSQL_PASSWORD || process.env.MYSQLPASSWORD,
+    database: process.env.DB_NAME || process.env.MYSQL_DATABASE || process.env.MYSQLDATABASE
   };
 
   const url = process.env.DATABASE_URL || process.env.MYSQL_URL || process.env.RAILWAY_DATABASE_URL;
@@ -161,5 +161,11 @@ async function initDb(retries = 5, delay = 3000) {
 
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on port ${PORT}`);
+  console.log('DB env check:', {
+    host: process.env.DB_HOST || process.env.MYSQL_HOST || process.env.MYSQLHOST || 'NOT SET',
+    user: process.env.DB_USER || process.env.MYSQL_USER || process.env.MYSQLUSER || 'NOT SET',
+    database: process.env.DB_NAME || process.env.MYSQL_DATABASE || process.env.MYSQLDATABASE || 'NOT SET',
+    hasUrl: !!(process.env.DATABASE_URL || process.env.MYSQL_URL)
+  });
   initDb();
 });
